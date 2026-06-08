@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.jdbc.Driver
+    url: jdbc:mysql://128.23.20.184:3306/supersonic?useUnicode=true&characterEncoding=UTF-8&useSSL=false&allowMultiQueries=true&allowPublicKeyRetrieval=true
+    username: 'root'
+    password: '!QAZ2wsx'
+
+#  这个是演示Demo的脚本，不需要执行
+#  sql:
+#    init:
+#      continue-on-error: true
+#      mode: always
+#      username: ${S2_DB_USER:root}
+#      password: ${S2_DB_PASSWORD:}
+#      schema-locations: classpath:db/schema-mysql.sql,classpath:db/schema-mysql-demo.sql
+#      data-locations: classpath:db/data-mysql.sql,classpath:db/data-mysql-demo.sql

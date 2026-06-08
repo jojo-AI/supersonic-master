@@ -1,0 +1,398 @@
+[
+    {
+        "question": "今年第一季度各区域的销售额总和是多少？",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'SUM'>,<quantity ALIAS '销售数量' COMMENT '销售商品数量' AGGREGATE 'SUM'>,<discount ALIAS '平均折扣' COMMENT '平均折扣率' AGGREGATE 'AVG'>], Dimensions=[<region ALIAS '区域' COMMENT '销售区域'>,<sale_date ALIAS '销售日期' COMMENT '销售日期'>,<category ALIAS '类别' COMMENT '产品类别'>], Values=[]",
+        "sql": "SELECT region, sum(sale_amount) as total_sales FROM supersonic_db.sales WHERE sale_date >= '2024-01-01' AND sale_date <= '2024-03-31' GROUP BY region ORDER BY total_sales DESC"
+    },
+    {
+        "question": "过去30天销量排名前5的产品是哪些？",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<quantity ALIAS '销售数量' COMMENT '销售商品数量' AGGREGATE 'SUM'>], Dimensions=[<product ALIAS '产品' COMMENT '产品名称'>,<sale_date ALIAS '销售日期' COMMENT '销售日期'>], Values=[]",
+        "sql": "SELECT product, sum(quantity) as total_quantity FROM supersonic_db.sales WHERE sale_date >= today() - 30 GROUP BY product ORDER BY total_quantity DESC LIMIT 5"
+    },
+    {
+        "question": "比较华东和华北地区本季度的销售额",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<region ALIAS '区域' COMMENT '销售区域'>,<sale_date ALIAS '销售日期' COMMENT '销售日期'>], Values=[<region='华东'>,<region='华北'>]",
+        "sql": "SELECT region, sum(sale_amount) as quarter_sales FROM supersonic_db.sales WHERE region IN ('华东', '华北') AND sale_date >= '2024-10-01' AND sale_date <= '2024-12-31' GROUP BY region ORDER BY quarter_sales DESC"
+    },
+    {
+        "question": "上周各品类的平均折扣率是多少？",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<discount ALIAS '平均折扣' COMMENT '平均折扣率' AGGREGATE 'AVG'>], Dimensions=[<category ALIAS '类别' COMMENT '产品类别'>,<sale_date ALIAS '销售日期' COMMENT '销售日期'>], Values=[]",
+        "sql": "SELECT category, avg(discount) as avg_discount FROM supersonic_db.sales WHERE sale_date >= today() - 7 GROUP BY category ORDER BY avg_discount DESC"
+    },
+    {
+        "question": "昨天销售额超过1万元的员工有哪些？",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<employee_id ALIAS '员工ID' COMMENT '员工编号'>,<sale_date ALIAS '销售日期' COMMENT '销售日期'>], Values=[]",
+        "sql": "SELECT employee_id, sum(sale_amount) as daily_sales FROM supersonic_db.sales WHERE sale_date = yesterday() GROUP BY employee_id HAVING daily_sales > 10000 ORDER BY daily_sales DESC"
+    },
+    {
+        "question": "各区域本月的销售额同比增长率是多少？",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<region ALIAS '区域' COMMENT '销售区域'>,<sale_date ALIAS '销售日期' COMMENT '销售日期'>], Values=[]",
+        "sql": "WITH current_month AS (SELECT region, sum(sale_amount) as current_sales FROM supersonic_db.sales WHERE toYear(sale_date) = 2024 AND toMonth(sale_date) = 12 GROUP BY region), last_month AS (SELECT region, sum(sale_amount) as last_sales FROM supersonic_db.sales WHERE toYear(sale_date) = 2023 AND toMonth(sale_date) = 12 GROUP BY region) SELECT c.region, c.current_sales, l.last_sales, round((c.current_sales - l.last_sales) / l.last_sales * 100, 2) as growth_rate FROM current_month c LEFT JOIN last_month l ON c.region = l.region ORDER BY growth_rate DESC"
+    },
+    {
+        "question": "哪些产品的折扣率超过30%？",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<discount ALIAS '平均折扣' COMMENT '平均折扣率' AGGREGATE 'AVG'>], Dimensions=[<product ALIAS '产品' COMMENT '产品名称'>], Values=[]",
+        "sql": "SELECT product, avg(discount) as avg_discount FROM supersonic_db.sales GROUP BY product HAVING avg_discount > 0.3 ORDER BY avg_discount DESC"
+    },
+    {
+        "question": "计算每个员工今年累计的销售额排名",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<employee_id ALIAS '员工ID' COMMENT '员工编号'>,<sale_date ALIAS '销售日期' COMMENT '销售日期'>], Values=[]",
+        "sql": "SELECT employee_id, sum(sale_amount) as year_sales, row_number() OVER (ORDER BY sum(sale_amount) DESC) as rank FROM supersonic_db.sales WHERE toYear(sale_date) = 2024 GROUP BY employee_id ORDER BY rank"
+    },
+    {
+        "question": "过去7天每日的销售额趋势如何？",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<sale_date ALIAS '销售日期' COMMENT '销售日期'>], Values=[]",
+        "sql": "SELECT sale_date, sum(sale_amount) as daily_sales FROM supersonic_db.sales WHERE sale_date >= today() - 7 GROUP BY sale_date ORDER BY sale_date"
+    },
+    {
+        "question": "找出单笔销售额超过5000元的所有交易",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<sale_id ALIAS '销售ID' COMMENT '交易编号'>,<sale_date ALIAS '销售日期' COMMENT '销售日期'>], Values=[]",
+        "sql": "SELECT sale_id, sale_date, sale_amount, product, employee_id FROM supersonic_db.sales WHERE sale_amount > 5000 ORDER BY sale_amount DESC LIMIT 100"
+    },
+    {
+        "question": "计算每个类别产品的平均单价",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'SUM'>,<quantity ALIAS '销售数量' COMMENT '销售商品数量' AGGREGATE 'SUM'>], Dimensions=[<category ALIAS '类别' COMMENT '产品类别'>], Values=[]",
+        "sql": "SELECT category, sum(sale_amount) / sum(quantity) as avg_price FROM supersonic_db.sales GROUP BY category ORDER BY avg_price DESC"
+    },
+    {
+        "question": "哪些区域本季度的销售额超过了去年同期？",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<region ALIAS '区域' COMMENT '销售区域'>,<sale_date ALIAS '销售日期' COMMENT '销售日期'>], Values=[]",
+        "sql": "WITH current_quarter AS (SELECT region, sum(sale_amount) as current_sales FROM supersonic_db.sales WHERE sale_date >= '2024-10-01' AND sale_date <= '2024-12-31' GROUP BY region), last_quarter AS (SELECT region, sum(sale_amount) as last_sales FROM supersonic_db.sales WHERE sale_date >= '2023-10-01' AND sale_date <= '2023-12-31' GROUP BY region) SELECT c.region, c.current_sales, l.last_sales FROM current_quarter c LEFT JOIN last_quarter l ON c.region = l.region WHERE c.current_sales > l.last_sales OR l.last_sales IS NULL ORDER BY (c.current_sales - coalesce(l.last_sales, 0)) DESC"
+    },
+    {
+        "question": "本周哪天销售额最高？",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<sale_date ALIAS '销售日期' COMMENT '销售日期'>], Values=[]",
+        "sql": "SELECT sale_date, sum(sale_amount) as daily_sales FROM supersonic_db.sales WHERE sale_date >= today() - 7 GROUP BY sale_date ORDER BY daily_sales DESC LIMIT 1"
+    },
+    {
+        "question": "统计每个员工销售的产品种类数量",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<sale_id ALIAS '交易数量' COMMENT '交易笔数' AGGREGATE 'COUNT'>], Dimensions=[<employee_id ALIAS '员工ID' COMMENT '员工编号'>,<product ALIAS '产品' COMMENT '产品名称'>], Values=[]",
+        "sql": "SELECT employee_id, count(distinct product) as unique_products FROM supersonic_db.sales GROUP BY employee_id ORDER BY unique_products DESC"
+    },
+    {
+        "question": "找出销售额最高的10%的销售记录",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<sale_id ALIAS '销售ID' COMMENT '交易编号'>], Values=[]",
+        "sql": "WITH sales_rank AS (SELECT sale_id, sale_amount, percent_rank() OVER (ORDER BY sale_amount DESC) as pct_rank FROM supersonic_db.sales) SELECT sale_id, sale_amount FROM sales_rank WHERE pct_rank <= 0.1 ORDER BY sale_amount DESC"
+    },
+    {
+        "question": "计算每个区域的平均订单金额",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'AVG'>], Dimensions=[<region ALIAS '区域' COMMENT '销售区域'>], Values=[]",
+        "sql": "SELECT region, avg(sale_amount) as avg_order_value FROM supersonic_db.sales GROUP BY region ORDER BY avg_order_value DESC"
+    },
+    {
+        "question": "找出连续3天都有销售记录的产品",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<sale_id ALIAS '交易数量' COMMENT '交易笔数' AGGREGATE 'COUNT'>], Dimensions=[<product ALIAS '产品' COMMENT '产品名称'>,<sale_date ALIAS '销售日期' COMMENT '销售日期'>], Values=[]",
+        "sql": "WITH product_dates AS (SELECT product, sale_date, lead(sale_date, 1) OVER (PARTITION BY product ORDER BY sale_date) as next_date, lead(sale_date, 2) OVER (PARTITION BY product ORDER BY sale_date) as next_next_date FROM (SELECT distinct product, sale_date FROM supersonic_db.sales) t) SELECT distinct product FROM product_dates WHERE datediff('day', sale_date, next_date) = 1 AND datediff('day', next_date, next_next_date) = 1 ORDER BY product LIMIT 20"
+    },
+    {
+        "question": "计算本月各区域的销售额占比",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<region ALIAS '区域' COMMENT '销售区域'>,<sale_date ALIAS '销售日期' COMMENT '销售日期'>], Values=[]",
+        "sql": "SELECT region, sum(sale_amount) as region_sales, round(region_sales * 100.0 / (SELECT sum(sale_amount) FROM supersonic_db.sales WHERE toMonth(sale_date) = 12 AND toYear(sale_date) = 2024), 2) as percentage FROM supersonic_db.sales WHERE toMonth(sale_date) = 12 AND toYear(sale_date) = 2024 GROUP BY region ORDER BY percentage DESC"
+    },
+    {
+        "question": "找出销量增长最快的3个产品",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<quantity ALIAS '销售数量' COMMENT '销售商品数量' AGGREGATE 'SUM'>], Dimensions=[<product ALIAS '产品' COMMENT '产品名称'>,<sale_date ALIAS '销售日期' COMMENT '销售日期'>], Values=[]",
+        "sql": "WITH current_month AS (SELECT product, sum(quantity) as current_qty FROM supersonic_db.sales WHERE toMonth(sale_date) = 12 AND toYear(sale_date) = 2024 GROUP BY product), last_month AS (SELECT product, sum(quantity) as last_qty FROM supersonic_db.sales WHERE toMonth(sale_date) = 11 AND toYear(sale_date) = 2024 GROUP BY product) SELECT c.product, c.current_qty, l.last_qty, round((c.current_qty - l.last_qty) * 100.0 / l.last_qty, 2) as growth_rate FROM current_month c LEFT JOIN last_month l ON c.product = l.product WHERE l.last_qty > 0 ORDER BY growth_rate DESC LIMIT 3"
+    },
+    {
+        "question": "统计每个员工每天的销售额，并找出最高的一天",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<employee_id ALIAS '员工ID' COMMENT '员工编号'>,<sale_date ALIAS '销售日期' COMMENT '销售日期'>], Values=[]",
+        "sql": "WITH daily_sales AS (SELECT employee_id, sale_date, sum(sale_amount) as daily_total, row_number() OVER (PARTITION BY employee_id ORDER BY sum(sale_amount) DESC) as rank FROM supersonic_db.sales GROUP BY employee_id, sale_date) SELECT employee_id, sale_date, daily_total FROM daily_sales WHERE rank = 1 ORDER BY daily_total DESC LIMIT 20"
+    },
+    {
+        "question": "计算各区域本季度的客单价（平均每单金额）",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'SUM'>,<sale_id ALIAS '交易数量' COMMENT '交易笔数' AGGREGATE 'COUNT'>], Dimensions=[<region ALIAS '区域' COMMENT '销售区域'>,<sale_date ALIAS '销售日期' COMMENT '销售日期'>], Values=[]",
+        "sql": "SELECT region, sum(sale_amount) / count(distinct sale_id) as avg_order_value FROM supersonic_db.sales WHERE sale_date >= '2024-10-01' AND sale_date <= '2024-12-31' GROUP BY region ORDER BY avg_order_value DESC"
+    },
+    {
+        "question": "找出本月销售额超过平均销售额的产品",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<product ALIAS '产品' COMMENT '产品名称'>,<sale_date ALIAS '销售日期' COMMENT '销售日期'>], Values=[]",
+        "sql": "SELECT product, sum(sale_amount) as product_sales FROM supersonic_db.sales WHERE toMonth(sale_date) = 12 AND toYear(sale_date) = 2024 GROUP BY product HAVING product_sales > (SELECT avg(sale_amount) FROM supersonic_db.sales WHERE toMonth(sale_date) = 12 AND toYear(sale_date) = 2024) ORDER BY product_sales DESC"
+    },
+    {
+        "question": "统计每个时间段（上午、下午、晚上）的销售额分布",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<sale_date ALIAS '销售日期' COMMENT '销售日期'>], Values=[]",
+        "sql": "SELECT multiIf(hour(sale_date) < 12, '上午', hour(sale_date) < 18, '下午', '晚上') as time_period, sum(sale_amount) as period_sales FROM supersonic_db.sales WHERE sale_date >= today() - 30 GROUP BY time_period ORDER BY period_sales DESC"
+    },
+    {
+        "question": "计算各区域销售额的月度环比增长率",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<region ALIAS '区域' COMMENT '销售区域'>,<sale_date ALIAS '销售日期' COMMENT '销售日期'>], Values=[]",
+        "sql": "WITH monthly_sales AS (SELECT region, toYYYYMM(sale_date) as yearmonth, sum(sale_amount) as monthly_total FROM supersonic_db.sales GROUP BY region, yearmonth) SELECT region, yearmonth, monthly_total, lag(monthly_total, 1) OVER (PARTITION BY region ORDER BY yearmonth) as prev_month, round((monthly_total - lag(monthly_total, 1) OVER (PARTITION BY region ORDER BY yearmonth)) * 100.0 / lag(monthly_total, 1) OVER (PARTITION BY region ORDER BY yearmonth), 2) as growth_rate FROM monthly_sales ORDER BY region, yearmonth"
+    },
+    {
+        "question": "找出购买次数最多的前10个客户（员工）",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<sale_id ALIAS '交易数量' COMMENT '交易笔数' AGGREGATE 'COUNT'>], Dimensions=[<employee_id ALIAS '员工ID' COMMENT '员工编号'>], Values=[]",
+        "sql": "SELECT employee_id, count(sale_id) as purchase_count FROM supersonic_db.sales GROUP BY employee_id ORDER BY purchase_count DESC LIMIT 10"
+    },
+    {
+        "question": "统计每个产品类别的销售额集中度（前3个产品的销售额占比）",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<category ALIAS '类别' COMMENT '产品类别'>,<product ALIAS '产品' COMMENT '产品名称'>], Values=[]",
+        "sql": "WITH category_sales AS (SELECT category, sum(sale_amount) as category_total FROM supersonic_db.sales GROUP BY category), product_sales AS (SELECT category, product, sum(sale_amount) as product_total, row_number() OVER (PARTITION BY category ORDER BY sum(sale_amount) DESC) as rank FROM supersonic_db.sales GROUP BY category, product) SELECT c.category, c.category_total, sum(p.product_total) as top3_total, round(sum(p.product_total) * 100.0 / c.category_total, 2) as top3_percentage FROM category_sales c LEFT JOIN product_sales p ON c.category = p.category AND p.rank <= 3 GROUP BY c.category, c.category_total ORDER BY top3_percentage DESC"
+    },
+    {
+        "question": "计算本月各区域的折扣力度（平均折扣率）",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<discount ALIAS '平均折扣' COMMENT '平均折扣率' AGGREGATE 'AVG'>], Dimensions=[<region ALIAS '区域' COMMENT '销售区域'>,<sale_date ALIAS '销售日期' COMMENT '销售日期'>], Values=[]",
+        "sql": "SELECT region, avg(discount) as avg_discount FROM supersonic_db.sales WHERE toMonth(sale_date) = 12 AND toYear(sale_date) = 2024 GROUP BY region ORDER BY avg_discount DESC"
+    },
+    {
+        "question": "找出销售额最高和最低的日期",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<sale_date ALIAS '销售日期' COMMENT '销售日期'>], Values=[]",
+        "sql": "WITH daily_sales AS (SELECT sale_date, sum(sale_amount) as daily_total FROM supersonic_db.sales WHERE sale_date >= today() - 90 GROUP BY sale_date) (SELECT '最高' as type, sale_date, daily_total FROM daily_sales ORDER BY daily_total DESC LIMIT 1) UNION ALL (SELECT '最低' as type, sale_date, daily_total FROM daily_sales ORDER BY daily_total ASC LIMIT 1)"
+    },
+    {
+        "question": "统计每个员工贡献的销售额占比",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<employee_id ALIAS '员工ID' COMMENT '员工编号'>], Values=[]",
+        "sql": "SELECT employee_id, sum(sale_amount) as employee_sales, round(employee_sales * 100.0 / (SELECT sum(sale_amount) FROM supersonic_db.sales WHERE toYear(sale_date) = 2024), 2) as percentage FROM supersonic_db.sales WHERE toYear(sale_date) = 2024 GROUP BY employee_id ORDER BY percentage DESC LIMIT 20"
+    },
+    {
+        "question": "找出销量突然增长（增长超过50%）的产品",
+        "sideInfo": "CurrentDate=[2024-12-31]",
+        "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], PartitionTimeField=[sale_date FORMAT 'yyyy-MM-dd'], Metrics=[<quantity ALIAS '销售数量' COMMENT '销售商品数量' AGGREGATE 'SUM'>], Dimensions=[<product ALIAS '产品' COMMENT '产品名称'>,<sale_date ALIAS '销售日期' COMMENT '销售日期'>], Values=[]",
+        "sql": "WITH weekly_sales AS (SELECT product, toWeek(sale_date) as week_num, sum(quantity) as weekly_qty FROM supersonic_db.sales GROUP BY product, week_num) SELECT product, week_num, weekly_qty, lag(weekly_qty, 1) OVER (PARTITION BY product ORDER BY week_num) as prev_week, round((weekly_qty - lag(weekly_qty, 1) OVER (PARTITION BY product ORDER BY week_num)) * 100.0 / lag(weekly_qty, 1) OVER (PARTITION BY product ORDER BY week_num), 2) as growth_rate FROM weekly_sales WHERE growth_rate > 50 ORDER BY growth_rate DESC LIMIT 20"
+    },
+        {
+            "question": "公司各部门的平均工资是多少？",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.employees], Metrics=[<salary ALIAS '工资' COMMENT '员工薪资' AGGREGATE 'AVG'>,<id ALIAS '员工数量' COMMENT '员工数量' AGGREGATE 'COUNT'>], Dimensions=[<department ALIAS '部门' COMMENT '所属部门'>], Values=[]",
+            "sql": "SELECT department, avg(salary) as avg_salary, count(id) as employee_count FROM supersonic_db.employees GROUP BY department ORDER BY avg_salary DESC"
+        },
+        {
+            "question": "年龄最大的5位员工是谁？",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.employees], Metrics=[<age ALIAS '年龄' COMMENT '员工年龄' AGGREGATE 'MAX'>], Dimensions=[<id ALIAS '员工ID' COMMENT '员工编号'>,<name ALIAS '姓名' COMMENT '员工姓名'>,<department ALIAS '部门' COMMENT '所属部门'>], Values=[]",
+            "sql": "SELECT id, name, age, department FROM supersonic_db.employees ORDER BY age DESC LIMIT 5"
+        },
+        {
+            "question": "绩效评分高于4.0的员工有哪些？",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.employees], Metrics=[<performance_score ALIAS '绩效评分' COMMENT '员工绩效评分' AGGREGATE 'AVG'>], Dimensions=[<id ALIAS '员工ID' COMMENT '员工编号'>,<name ALIAS '姓名' COMMENT '员工姓名'>,<department ALIAS '部门' COMMENT '所属部门'>], Values=[]",
+            "sql": "SELECT id, name, department, performance_score FROM supersonic_db.employees WHERE performance_score > 4.0 ORDER BY performance_score DESC"
+        },
+        {
+            "question": "各城市的员工平均年龄是多少？",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.employees], Metrics=[<age ALIAS '年龄' COMMENT '员工年龄' AGGREGATE 'AVG'>], Dimensions=[<city ALIAS '城市' COMMENT '所在城市'>], Values=[]",
+            "sql": "SELECT city, avg(age) as avg_age FROM supersonic_db.employees GROUP BY city ORDER BY avg_age DESC"
+        },
+        {
+            "question": "今年入职的员工有哪些？",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.employees], Metrics=[<id ALIAS '员工数量' COMMENT '员工数量' AGGREGATE 'COUNT'>], Dimensions=[<id ALIAS '员工ID' COMMENT '员工编号'>,<name ALIAS '姓名' COMMENT '员工姓名'>,<hire_date ALIAS '入职日期' COMMENT '入职时间'>,<department ALIAS '部门' COMMENT '所属部门'>], Values=[]",
+            "sql": "SELECT id, name, hire_date, department FROM supersonic_db.employees WHERE toYear(hire_date) = 2024 ORDER BY hire_date DESC"
+        },
+        {
+            "question": "各部门的薪资分布情况如何？",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.employees], Metrics=[<salary ALIAS '平均工资' COMMENT '员工薪资' AGGREGATE 'AVG'>,<salary ALIAS '最高工资' COMMENT '员工薪资' AGGREGATE 'MAX'>,<salary ALIAS '最低工资' COMMENT '员工薪资' AGGREGATE 'MIN'>], Dimensions=[<department ALIAS '部门' COMMENT '所属部门'>], Values=[]",
+            "sql": "SELECT department, avg(salary) as avg_salary, max(salary) as max_salary, min(salary) as min_salary FROM supersonic_db.employees GROUP BY department ORDER BY avg_salary DESC"
+        },
+        {
+            "question": "绩效评分与薪资的关系是怎样的？",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.employees], Metrics=[<salary ALIAS '平均工资' COMMENT '员工薪资' AGGREGATE 'AVG'>], Dimensions=[<performance_score ALIAS '绩效评分' COMMENT '员工绩效评分'>], Values=[]",
+            "sql": "SELECT performance_score, avg(salary) as avg_salary FROM supersonic_db.employees GROUP BY performance_score ORDER BY performance_score DESC"
+        },
+        {
+            "question": "哪个部门的员工平均年龄最小？",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.employees], Metrics=[<age ALIAS '平均年龄' COMMENT '员工年龄' AGGREGATE 'AVG'>], Dimensions=[<department ALIAS '部门' COMMENT '所属部门'>], Values=[]",
+            "sql": "SELECT department, avg(age) as avg_age FROM supersonic_db.employees GROUP BY department ORDER BY avg_age ASC LIMIT 1"
+        },
+        {
+            "question": "过去5年每年入职的员工数量是多少？",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.employees], Metrics=[<id ALIAS '员工数量' COMMENT '员工数量' AGGREGATE 'COUNT'>], Dimensions=[<hire_date ALIAS '入职年份' COMMENT '入职年份'>], Values=[]",
+            "sql": "SELECT toYear(hire_date) as hire_year, count(id) as hire_count FROM supersonic_db.employees WHERE hire_date >= '2020-01-01' GROUP BY hire_year ORDER BY hire_year DESC"
+        },
+        {
+            "question": "各城市的员工绩效评分排名如何？",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.employees], Metrics=[<performance_score ALIAS '平均绩效' COMMENT '员工绩效评分' AGGREGATE 'AVG'>], Dimensions=[<city ALIAS '城市' COMMENT '所在城市'>], Values=[]",
+            "sql": "SELECT city, avg(performance_score) as avg_performance FROM supersonic_db.employees GROUP BY city ORDER BY avg_performance DESC"
+        },
+        {
+            "question": "薪资超过10万元的员工有哪些？",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.employees], Metrics=[<salary ALIAS '工资' COMMENT '员工薪资' AGGREGATE 'SUM'>], Dimensions=[<id ALIAS '员工ID' COMMENT '员工编号'>,<name ALIAS '姓名' COMMENT '员工姓名'>,<department ALIAS '部门' COMMENT '所属部门'>], Values=[]",
+            "sql": "SELECT id, name, department, salary FROM supersonic_db.employees WHERE salary > 100000 ORDER BY salary DESC"
+        },
+        {
+            "question": "员工年龄分布情况如何？",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.employees], Metrics=[<id ALIAS '员工数量' COMMENT '员工数量' AGGREGATE 'COUNT'>], Dimensions=[<age ALIAS '年龄区间' COMMENT '员工年龄区间'>], Values=[]",
+            "sql": "SELECT multiIf(age < 25, '25岁以下', age < 35, '25-34岁', age < 45, '35-44岁', '45岁及以上') as age_group, count(id) as employee_count FROM supersonic_db.employees GROUP BY age_group ORDER BY employee_count DESC"
+        },
+        {
+            "question": "哪个部门的新员工最多？",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.employees], Metrics=[<id ALIAS '新员工数量' COMMENT '员工数量' AGGREGATE 'COUNT'>], Dimensions=[<department ALIAS '部门' COMMENT '所属部门'>], Values=[]",
+            "sql": "SELECT department, count(id) as new_employee_count FROM supersonic_db.employees WHERE hire_date >= '2024-01-01' GROUP BY department ORDER BY new_employee_count DESC LIMIT 5"
+        },
+        {
+            "question": "绩效评分与年龄的关系是怎样的？",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.employees], Metrics=[<performance_score ALIAS '平均绩效' COMMENT '员工绩效评分' AGGREGATE 'AVG'>], Dimensions=[<age ALIAS '年龄区间' COMMENT '员工年龄区间'>], Values=[]",
+            "sql": "SELECT multiIf(age < 30, '30岁以下', age < 40, '30-39岁', age < 50, '40-49岁', '50岁及以上') as age_group, avg(performance_score) as avg_performance FROM supersonic_db.employees GROUP BY age_group ORDER BY avg_performance DESC"
+        },
+        {
+            "question": "员工薪资的百分位分布如何？",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.employees], Metrics=[<salary ALIAS 'P25工资' COMMENT '员工薪资' AGGREGATE 'quantile(0.25)'>,<salary ALIAS 'P50工资' COMMENT '员工薪资' AGGREGATE 'quantile(0.5)'>,<salary ALIAS 'P75工资' COMMENT '员工薪资' AGGREGATE 'quantile(0.75)'>], Dimensions=[<department ALIAS '部门' COMMENT '所属部门'>], Values=[]",
+            "sql": "SELECT department, quantile(0.25)(salary) as p25_salary, quantile(0.5)(salary) as p50_salary, quantile(0.75)(salary) as p75_salary FROM supersonic_db.employees GROUP BY department ORDER BY p50_salary DESC"
+        },
+        {
+            "question": "销售部门员工本季度的销售额是多少？",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Table=[supersonic_db.sales], Metrics=[<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<employee_id ALIAS '员工ID' COMMENT '员工编号'>,<sale_date ALIAS '销售日期' COMMENT '销售日期'>], Values=[]",
+            "sql": "SELECT s.employee_id, sum(s.sale_amount) as total_sales FROM supersonic_db.sales s JOIN supersonic_db.employees e ON s.employee_id = e.id WHERE e.department = '销售部' AND s.sale_date >= '2024-10-01' AND s.sale_date <= '2024-12-31' GROUP BY s.employee_id ORDER BY total_sales DESC"
+        },
+        {
+            "question": "绩效评分高的员工销售额是否也高？",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Tables=[supersonic_db.sales, supersonic_db.employees], Metrics=[<sale_amount ALIAS '总销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<performance_score ALIAS '绩效评分' COMMENT '员工绩效评分'>,<employee_id ALIAS '员工ID' COMMENT '员工编号'>], Values=[]",
+            "sql": "SELECT e.performance_score, sum(s.sale_amount) as total_sales FROM supersonic_db.sales s JOIN supersonic_db.employees e ON s.employee_id = e.id GROUP BY e.performance_score ORDER BY e.performance_score DESC"
+        },
+        {
+            "question": "各城市员工的销售业绩如何？",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Tables=[supersonic_db.sales, supersonic_db.employees], Metrics=[<sale_amount ALIAS '总销售额' COMMENT '销售金额' AGGREGATE 'SUM'>,<quantity ALIAS '总销量' COMMENT '销售商品数量' AGGREGATE 'SUM'>], Dimensions=[<city ALIAS '城市' COMMENT '员工所在城市'>], Values=[]",
+            "sql": "SELECT e.city, sum(s.sale_amount) as total_sales, sum(s.quantity) as total_quantity FROM supersonic_db.sales s JOIN supersonic_db.employees e ON s.employee_id = e.id GROUP BY e.city ORDER BY total_sales DESC"
+        },
+        {
+            "question": "不同年龄段的员工销售能力有何差异？",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Tables=[supersonic_db.sales, supersonic_db.employees], Metrics=[<sale_amount ALIAS '平均销售额' COMMENT '销售金额' AGGREGATE 'AVG'>], Dimensions=[<age ALIAS '年龄段' COMMENT '员工年龄段'>], Values=[]",
+            "sql": "SELECT multiIf(e.age < 30, '30岁以下', e.age < 40, '30-39岁', e.age < 50, '40-49岁', '50岁及以上') as age_group, avg(s.sale_amount) as avg_sales FROM supersonic_db.sales s JOIN supersonic_db.employees e ON s.employee_id = e.id GROUP BY age_group ORDER BY avg_sales DESC"
+        },
+        {
+            "question": "本月销售冠军是谁？",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Tables=[supersonic_db.sales, supersonic_db.employees], Metrics=[<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<employee_id ALIAS '员工ID' COMMENT '员工编号'>,<name ALIAS '姓名' COMMENT '员工姓名'>], Values=[]",
+            "sql": "SELECT e.id, e.name, sum(s.sale_amount) as total_sales FROM supersonic_db.sales s JOIN supersonic_db.employees e ON s.employee_id = e.id WHERE toMonth(s.sale_date) = 12 AND toYear(s.sale_date) = 2024 GROUP BY e.id, e.name ORDER BY total_sales DESC LIMIT 1"
+        },
+        {
+            "question": "各部门员工的平均销售额是多少？",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Tables=[supersonic_db.sales, supersonic_db.employees], Metrics=[<sale_amount ALIAS '平均销售额' COMMENT '销售金额' AGGREGATE 'AVG'>], Dimensions=[<department ALIAS '部门' COMMENT '所属部门'>], Values=[]",
+            "sql": "SELECT e.department, avg(s.sale_amount) as avg_sales FROM supersonic_db.sales s JOIN supersonic_db.employees e ON s.employee_id = e.id GROUP BY e.department ORDER BY avg_sales DESC"
+        },
+        {
+            "question": "高薪员工的销售业绩如何？",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Tables=[supersonic_db.sales, supersonic_db.employees], Metrics=[<sale_amount ALIAS '总销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<salary ALIAS '薪资区间' COMMENT '员工薪资区间'>], Values=[]",
+            "sql": "SELECT multiIf(e.salary < 50000, '5万以下', e.salary < 80000, '5-8万', e.salary < 100000, '8-10万', '10万以上') as salary_range, sum(s.sale_amount) as total_sales FROM supersonic_db.sales s JOIN supersonic_db.employees e ON s.employee_id = e.id GROUP BY salary_range ORDER BY total_sales DESC"
+        },
+        {
+            "question": "新老员工的销售表现对比如何？",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Tables=[supersonic_db.sales, supersonic_db.employees], Metrics=[<sale_amount ALIAS '平均销售额' COMMENT '销售金额' AGGREGATE 'AVG'>], Dimensions=[<hire_date ALIAS '入职年限' COMMENT '入职年限'>], Values=[]",
+            "sql": "SELECT multiIf(e.hire_date >= today() - 365, '1年以内', e.hire_date >= today() - 1095, '1-3年', e.hire_date >= today() - 1825, '3-5年', '5年以上') as tenure, avg(s.sale_amount) as avg_sales FROM supersonic_db.sales s JOIN supersonic_db.employees e ON s.employee_id = e.id GROUP BY tenure ORDER BY avg_sales DESC"
+        },
+        {
+            "question": "销售部门员工的销售业绩与绩效评分的关系？",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Tables=[supersonic_db.sales, supersonic_db.employees], Metrics=[<sale_amount ALIAS '总销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<performance_score ALIAS '绩效等级' COMMENT '员工绩效等级'>], Values=[]",
+            "sql": "SELECT multiIf(e.performance_score >= 4.5, '优秀', e.performance_score >= 4.0, '良好', e.performance_score >= 3.0, '一般', '待改进') as performance_level, sum(s.sale_amount) as total_sales FROM supersonic_db.sales s JOIN supersonic_db.employees e ON s.employee_id = e.id WHERE e.department = '销售部' GROUP BY performance_level ORDER BY total_sales DESC"
+        },
+        {
+            "question": "不同城市员工的销售折扣使用情况",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Tables=[supersonic_db.sales, supersonic_db.employees], Metrics=[<discount ALIAS '平均折扣' COMMENT '平均折扣率' AGGREGATE 'AVG'>,<sale_amount ALIAS '总销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<city ALIAS '城市' COMMENT '员工所在城市'>], Values=[]",
+            "sql": "SELECT e.city, avg(s.discount) as avg_discount, sum(s.sale_amount) as total_sales FROM supersonic_db.sales s JOIN supersonic_db.employees e ON s.employee_id = e.id GROUP BY e.city ORDER BY avg_discount DESC"
+        },
+        {
+            "question": "高绩效员工的销售产品类别分布",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Tables=[supersonic_db.sales, supersonic_db.employees], Metrics=[<quantity ALIAS '销售数量' COMMENT '销售商品数量' AGGREGATE 'SUM'>], Dimensions=[<category ALIAS '产品类别' COMMENT '产品类别'>], Values=[]",
+            "sql": "SELECT s.category, sum(s.quantity) as total_quantity FROM supersonic_db.sales s JOIN supersonic_db.employees e ON s.employee_id = e.id WHERE e.performance_score >= 4.0 GROUP BY s.category ORDER BY total_quantity DESC"
+        },
+        {
+            "question": "员工销售额与其年龄、薪资的关系分析",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Tables=[supersonic_db.sales, supersonic_db.employees], Metrics=[<sale_amount ALIAS '总销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<age ALIAS '年龄段' COMMENT '员工年龄段'>,<salary ALIAS '薪资区间' COMMENT '员工薪资区间'>], Values=[]",
+            "sql": "SELECT multiIf(e.age < 30, '30岁以下', e.age < 40, '30-39岁', e.age < 50, '40-49岁', '50岁及以上') as age_group, multiIf(e.salary < 60000, '6万以下', e.salary < 90000, '6-9万', e.salary < 120000, '9-12万', '12万以上') as salary_range, sum(s.sale_amount) as total_sales FROM supersonic_db.sales s JOIN supersonic_db.employees e ON s.employee_id = e.id GROUP BY age_group, salary_range ORDER BY total_sales DESC"
+        },
+        {
+            "question": "销售部门员工的本月销售完成率",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Tables=[supersonic_db.sales, supersonic_db.employees], Metrics=[<sale_amount ALIAS '本月销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<name ALIAS '姓名' COMMENT '员工姓名'>,<id ALIAS '员工ID' COMMENT '员工编号'>], Values=[]",
+            "sql": "SELECT e.id, e.name, sum(s.sale_amount) as month_sales FROM supersonic_db.sales s JOIN supersonic_db.employees e ON s.employee_id = e.id WHERE e.department = '销售部' AND toMonth(s.sale_date) = 12 AND toYear(s.sale_date) = 2024 GROUP BY e.id, e.name ORDER BY month_sales DESC"
+        },
+        {
+            "question": "不同入职年限员工的销售业绩增长情况",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Tables=[supersonic_db.sales, supersonic_db.employees], Metrics=[<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<hire_date ALIAS '入职年限' COMMENT '入职年限'>,<sale_date ALIAS '销售年份' COMMENT '销售年份'>], Values=[]",
+            "sql": "SELECT toYear(s.sale_date) as sale_year, multiIf(e.hire_date >= today() - 365, '1年以内', e.hire_date >= today() - 1095, '1-3年', e.hire_date >= today() - 1825, '3-5年', '5年以上') as tenure, sum(s.sale_amount) as total_sales FROM supersonic_db.sales s JOIN supersonic_db.employees e ON s.employee_id = e.id GROUP BY sale_year, tenure ORDER BY sale_year, tenure"
+        },
+        {
+            "question": "绩效评分与销售折扣使用的关系",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Tables=[supersonic_db.sales, supersonic_db.employees], Metrics=[<discount ALIAS '平均折扣' COMMENT '平均折扣率' AGGREGATE 'AVG'>,<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<performance_score ALIAS '绩效评分' COMMENT '员工绩效评分'>], Values=[]",
+            "sql": "SELECT e.performance_score, avg(s.discount) as avg_discount, sum(s.sale_amount) as total_sales FROM supersonic_db.sales s JOIN supersonic_db.employees e ON s.employee_id = e.id GROUP BY e.performance_score ORDER BY e.performance_score DESC"
+        },
+        {
+            "question": "各城市员工销售的客单价分析",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Tables=[supersonic_db.sales, supersonic_db.employees], Metrics=[<sale_amount ALIAS '总销售额' COMMENT '销售金额' AGGREGATE 'SUM'>,<quantity ALIAS '总销量' COMMENT '销售商品数量' AGGREGATE 'SUM'>], Dimensions=[<city ALIAS '城市' COMMENT '员工所在城市'>], Values=[]",
+            "sql": "SELECT e.city, sum(s.sale_amount) / sum(s.quantity) as avg_price_per_unit FROM supersonic_db.sales s JOIN supersonic_db.employees e ON s.employee_id = e.id GROUP BY e.city ORDER BY avg_price_per_unit DESC"
+        },
+        {
+            "question": "销售部门员工的产品销售集中度",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Tables=[supersonic_db.sales, supersonic_db.employees], Metrics=[<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<product ALIAS '产品' COMMENT '产品名称'>], Values=[]",
+            "sql": "SELECT s.product, sum(s.sale_amount) as product_sales FROM supersonic_db.sales s JOIN supersonic_db.employees e ON s.employee_id = e.id WHERE e.department = '销售部' GROUP BY s.product ORDER BY product_sales DESC LIMIT 10"
+        },
+        {
+            "question": "员工销售业绩的季节性变化",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Tables=[supersonic_db.sales, supersonic_db.employees], Metrics=[<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<sale_date ALIAS '销售季度' COMMENT '销售季度'>], Values=[]",
+            "sql": "SELECT toQuarter(s.sale_date) as sale_quarter, sum(s.sale_amount) as total_sales FROM supersonic_db.sales s JOIN supersonic_db.employees e ON s.employee_id = e.id GROUP BY sale_quarter ORDER BY sale_quarter"
+        },
+        {
+            "question": "高绩效员工的客户区域分布",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Tables=[supersonic_db.sales, supersonic_db.employees], Metrics=[<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'SUM'>], Dimensions=[<region ALIAS '销售区域' COMMENT '销售区域'>], Values=[]",
+            "sql": "SELECT s.region, sum(s.sale_amount) as region_sales FROM supersonic_db.sales s JOIN supersonic_db.employees e ON s.employee_id = e.id WHERE e.performance_score >= 4.5 GROUP BY s.region ORDER BY region_sales DESC"
+        },
+        {
+            "question": "员工销售能力与工作年限的回归分析",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Tables=[supersonic_db.sales, supersonic_db.employees], Metrics=[<sale_amount ALIAS '月均销售额' COMMENT '销售金额' AGGREGATE 'AVG'>], Dimensions=[<hire_date ALIAS '工作年限' COMMENT '工作年限'>], Values=[]",
+            "sql": "SELECT floor(date_diff('year', e.hire_date, today())) as work_years, avg(s.sale_amount) as avg_monthly_sales FROM supersonic_db.sales s JOIN supersonic_db.employees e ON s.employee_id = e.id GROUP BY work_years ORDER BY work_years"
+        },
+        {
+            "question": "销售团队的人员结构与业绩贡献",
+            "sideInfo": "CurrentDate=[2024-12-31]",
+            "dbSchema": "DatabaseType=[CLICKHOUSE], Tables=[supersonic_db.sales, supersonic_db.employees], Metrics=[<sale_amount ALIAS '销售额' COMMENT '销售金额' AGGREGATE 'SUM'>,<id ALIAS '员工数' COMMENT '员工数量' AGGREGATE 'COUNT'>], Dimensions=[<department ALIAS '部门' COMMENT '所属部门'>], Values=[]",
+            "sql": "SELECT e.department, count(distinct e.id) as employee_count, sum(s.sale_amount) as total_sales FROM supersonic_db.sales s JOIN supersonic_db.employees e ON s.employee_id = e.id GROUP BY e.department ORDER BY total_sales DESC"
+        }
+]
