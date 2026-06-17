@@ -139,7 +139,34 @@ public class IntentAnalyzerExecutor {
         }
 
         // 根据拆分出来的 queryIntent 拼接成 List<IntentResult>
-        return parseIntentResults(responseText);
+        List<IntentResult> results = parseIntentResults(responseText);
+        sortIntentResults(results);
+        return results;
+    }
+
+    private void sortIntentResults(List<IntentResult> results) {
+        if (results == null || results.size() <= 1) {
+            return;
+        }
+
+        results.sort((left, right) -> {
+            int leftOrder = getIntentTypeOrder(left);
+            int rightOrder = getIntentTypeOrder(right);
+            return Integer.compare(leftOrder, rightOrder);
+        });
+    }
+
+    private int getIntentTypeOrder(IntentResult intentResult) {
+        if (intentResult == null || intentResult.getIntentType() == null) {
+            return Integer.MAX_VALUE;
+        }
+        if (INTENT_TYPE_DATA.equals(intentResult.getIntentType().trim())) {
+            return 0;
+        }
+        if (INTENT_TYPE_POLICY.equals(intentResult.getIntentType().trim())) {
+            return 1;
+        }
+        return Integer.MAX_VALUE;
     }
 
     private List<IntentResult> parseIntentResults(String responseText) {

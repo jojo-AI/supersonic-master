@@ -153,13 +153,16 @@ public class ChatQueryServiceImpl implements ChatQueryService {
         // 构建执行器
         ExecuteContext executeContext = buildExecuteContext(chatExecuteReq);
 
-        // TODO: 新增逻辑，不管是问策还是问数，都先进行意图识别
+        // 新增逻辑，不管是问策还是问数，都先进行意图识别和query改写
         IntentAnalyzerExecutor intentAnalyzerExecutor = new IntentAnalyzerExecutor();
         // 注意LLM的agentId必须是7，不能用传进来的
         List<IntentResult> intentResultList = intentAnalyzerExecutor.execute(7,
                 executeContext.getRequest().getQueryText(), executeContext.getRequest().getChatId());
 
-        // 模型回答
+        // TODO: query改写后的list一定是问数在前，问策在后，问数坚决不能带上下文记忆，拼接条件是100%会出问题的
+
+        // TODO： 模型回答和保存，最终只保存一个queryResult，类型都是问数
+
         for (ChatQueryExecutor chatQueryExecutor : chatQueryExecutors) {
             // 聊天执行器，判断用哪一个执行器执行
             if (chatQueryExecutor.accept(executeContext)) {
@@ -181,6 +184,7 @@ public class ChatQueryServiceImpl implements ChatQueryService {
             // 保存问答结果
             saveQueryResult(chatExecuteReq, queryResult);
         }
+
         return queryResult;
     }
 
