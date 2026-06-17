@@ -10,6 +10,7 @@ public class PluginExecutor implements ChatQueryExecutor {
 
     @Override
     public boolean accept(ExecuteContext executeContext) {
+        // 插件类型调用
         return PluginQueryManager.isPluginQuery(executeContext.getParseInfo().getQueryMode());
     }
 

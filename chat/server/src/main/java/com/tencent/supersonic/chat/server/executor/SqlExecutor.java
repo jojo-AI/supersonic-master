@@ -27,6 +27,7 @@ public class SqlExecutor implements ChatQueryExecutor {
 
     @Override
     public boolean accept(ExecuteContext executeContext) {
+        // TODO：这里S2SQL不做任何类型判断，就是默认用来兜底
         return true;
     }
 

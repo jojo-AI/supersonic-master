@@ -6,9 +6,11 @@ import com.tencent.supersonic.chat.api.pojo.request.ChatExecuteReq;
 import com.tencent.supersonic.chat.api.pojo.request.ChatParseReq;
 import com.tencent.supersonic.chat.api.pojo.request.ChatQueryDataReq;
 import com.tencent.supersonic.chat.api.pojo.response.ChatParseResp;
+import com.tencent.supersonic.chat.api.pojo.response.IntentResult;
 import com.tencent.supersonic.chat.api.pojo.response.QueryResult;
 import com.tencent.supersonic.chat.server.agent.Agent;
 import com.tencent.supersonic.chat.server.executor.ChatQueryExecutor;
+import com.tencent.supersonic.chat.server.executor.IntentAnalyzerExecutor;
 import com.tencent.supersonic.chat.server.parser.ChatQueryParser;
 import com.tencent.supersonic.chat.server.persistence.dataobject.ChatQueryDO;
 import com.tencent.supersonic.chat.server.pojo.ExecuteContext;
@@ -121,8 +123,7 @@ public class ChatQueryServiceImpl implements ChatQueryService {
             chatParseReq.setQueryId(queryId);
         }
         // 这一步会识别请求需要的Agent智能体，如果是聊天，则智能体不会携带任何Tools，那么accept的时候就会进入聊天模型.期中agent_id是前端写死传进来的，
-        // 界面入参看不见，如果我们敢相信自己的意图识别器，就在问数机器人中手动把agent_id写死，那么这里就会识别成聊天模型，那么就进入聊天(问策)模型
-        // 原因应该是腾讯音乐做的意图识别器也不好用.
+        // 界面入参看不见，如果我们用自己的意图识别器，就在问数机器人中手动把agent_id写死，那么这里就会识别成聊天模型，那么就进入聊天(问策)模型
         ParseContext parseContext = buildParseContext(chatParseReq, new ChatParseResp(queryId));
         for (ChatQueryParser parser : chatQueryParsers) {
             if (parser.accept(parseContext)) {
@@ -149,21 +150,14 @@ public class ChatQueryServiceImpl implements ChatQueryService {
     @Override
     public QueryResult execute(ChatExecuteReq chatExecuteReq) {
         QueryResult queryResult = new QueryResult();
+        // 构建执行器
         ExecuteContext executeContext = buildExecuteContext(chatExecuteReq);
 
-        // Query意图解析器（这里先不做，因为上一步的parse接口会把请求截断，腾讯音乐的源码是通过前端区分聊天和查数据的）
-//        HighwayIntentRecognizer.RecognitionResult recognize = highwayIntentRecognizer.recognize(chatExecuteReq.getQueryText());
-//        log.info("JOJO Test: 意图识别结果 {}", recognize);
-//        if (recognize.getIntentType() == HighwayIntentRecognizer.IntentType.KNOWLEDGE_QUERY) {
-//            // TODO: JOJO-TEST,新增Dify问策执行器
-//            queryResult.setQueryId(chatExecuteReq.getQueryId());
-//            queryResult.setQueryMode("DIFY");
-//            queryResult.setTextResult("测试一下，这里加Dify执行结果");
-//            queryResult.setQueryState(QueryState.SUCCESS);
-//            queryResult.setTextResult(queryResult.getTextResult()+"!!");
-//            queryResult.setTextSummary(queryResult.getTextResult()+"??");
-//            return queryResult;
-//        }
+        // TODO: 新增逻辑，不管是问策还是问数，都先进行意图识别
+        IntentAnalyzerExecutor intentAnalyzerExecutor = new IntentAnalyzerExecutor();
+        // 注意LLM的agentId必须是7，不能用传进来的
+        List<IntentResult> intentResultList = intentAnalyzerExecutor.execute(7,
+                executeContext.getRequest().getQueryText(), executeContext.getRequest().getChatId());
 
         // 模型回答
         for (ChatQueryExecutor chatQueryExecutor : chatQueryExecutors) {
@@ -171,7 +165,7 @@ public class ChatQueryServiceImpl implements ChatQueryService {
             if (chatQueryExecutor.accept(executeContext)) {
                 queryResult = chatQueryExecutor.execute(executeContext);
                 if (queryResult != null) {
-                    // 只执行一个就返回
+                    // 只执行一个就返回,后续看要不要执行多个
                     break;
                 }
             }
@@ -184,7 +178,7 @@ public class ChatQueryServiceImpl implements ChatQueryService {
                     processor.process(executeContext);
                 }
             }
-            // 调用持久层保存执行器执行结果
+            // 保存问答结果
             saveQueryResult(chatExecuteReq, queryResult);
         }
         return queryResult;

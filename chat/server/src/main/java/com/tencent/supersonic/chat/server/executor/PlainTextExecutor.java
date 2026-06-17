@@ -40,6 +40,7 @@ public class PlainTextExecutor implements ChatQueryExecutor {
 
     @Override
     public boolean accept(ExecuteContext executeContext) {
+        // 纯文本聊天模式
         return "PLAIN_TEXT".equals(executeContext.getParseInfo().getQueryMode());
     }
 
@@ -63,7 +64,7 @@ public class PlainTextExecutor implements ChatQueryExecutor {
         result.setQueryState(QueryState.SUCCESS);
         result.setQueryMode(executeContext.getParseInfo().getQueryMode());
 
-        // 拼接上Dify的回复
+        // JOJO TODO:拼接上Dify的回复
         DifyExecutor difyExecutor = new DifyExecutor();
         User user = executeContext.getRequest().getUser();
         String difyReply = difyExecutor.generate(user, executeContext.getRequest().getQueryText());

@@ -37,7 +37,7 @@ const LoginPage: React.FC = () => {
         if (queryUserData.superAdmin) {
           authCodes.push(ROUTE_AUTH_CODES.SYSTEM_ADMIN);
         }
-        setInitialState({ ...initialState, currentUser, authCodes });
+        await setInitialState({...initialState, currentUser, authCodes});
       }
       history.push('/');
       return;
@@ -94,12 +94,12 @@ const LoginPage: React.FC = () => {
                 <h3 className={styles.title}>
                   <Space>
                     <S2Icon
-                      icon={ICON.iconlogobiaoshi}
+                      icon={ICON.iconlogobiaoshisssssssss}
                       size={30}
                       color="#296DF3"
                       style={{ display: 'inline-block', marginTop: 8 }}
                     />
-                    <div>SuperSonic</div>
+                    <div>利通智能交通研究院数据中台</div>
                   </Space>
                 </h3>
                 <Item name="name" rules={[{ required: true }]} label="">
