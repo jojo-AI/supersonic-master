@@ -31,9 +31,9 @@ public class IntentAnalyzerExecutor {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    private static final String INTENT_TYPE_DATA = "问数";
+    public static final String INTENT_TYPE_DATA = "问数";
 
-    private static final String INTENT_TYPE_POLICY = "问策";
+    public static final String INTENT_TYPE_POLICY = "问策";
 
     private static final String INSTRUCTION =
             "#Role:\n"

@@ -47,7 +47,8 @@ public class PlainTextExecutor implements ChatQueryExecutor {
     @Override
     public QueryResult execute(ExecuteContext executeContext) {
         AgentService agentService = ContextUtils.getBean(AgentService.class);
-        Agent chatAgent = agentService.getAgent(executeContext.getAgent().getId());
+        // AgentId = 4 是问策机器人，AgentId = 2 是问数机器人，其他类型先不做考虑
+        Agent chatAgent = agentService.getAgent(4);
         ChatApp chatApp = chatAgent.getChatAppConfig().get(APP_KEY);
         if (Objects.isNull(chatApp) || !chatApp.isEnable()) {
             return null;

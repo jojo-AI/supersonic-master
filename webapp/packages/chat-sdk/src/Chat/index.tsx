@@ -417,19 +417,6 @@ const Chat: ForwardRefRenderFunction<any, Props> = (
                                 }}
                               />
                             </Tooltip>
-                            <Tooltip title="问数/问策类型切换">
-                              <Switch
-                                  key={currentAgent.id}
-                                  style={{ position: 'relative', top: -1 }}
-                                  size="small"
-                                  value={isSimpleMode}
-                                  checkedChildren="问数"
-                                  unCheckedChildren="问策"
-                                  onChange={checked => {
-                                    setIsSimpleMode(checked);
-                                  }}
-                              />
-                            </Tooltip>
                           </Space>
                         </Col>
                         <Col flex="0 1 118px"></Col>

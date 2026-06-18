@@ -11,6 +11,8 @@ import com.tencent.supersonic.chat.api.pojo.response.QueryResult;
 import com.tencent.supersonic.chat.server.agent.Agent;
 import com.tencent.supersonic.chat.server.executor.ChatQueryExecutor;
 import com.tencent.supersonic.chat.server.executor.IntentAnalyzerExecutor;
+import com.tencent.supersonic.chat.server.executor.PlainTextExecutor;
+import com.tencent.supersonic.chat.server.executor.SqlExecutor;
 import com.tencent.supersonic.chat.server.parser.ChatQueryParser;
 import com.tencent.supersonic.chat.server.persistence.dataobject.ChatQueryDO;
 import com.tencent.supersonic.chat.server.pojo.ExecuteContext;
@@ -76,6 +78,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static com.tencent.supersonic.chat.server.executor.IntentAnalyzerExecutor.INTENT_TYPE_DATA;
+import static com.tencent.supersonic.chat.server.executor.IntentAnalyzerExecutor.INTENT_TYPE_POLICY;
 
 @Slf4j
 @Service
@@ -160,20 +165,47 @@ public class ChatQueryServiceImpl implements ChatQueryService {
                 executeContext.getRequest().getQueryText(), executeContext.getRequest().getChatId());
 
         // TODO: query改写后的list一定是问数在前，问策在后，问数坚决不能带上下文记忆，拼接条件是100%会出问题的
-
-        // TODO： 模型回答和保存，最终只保存一个queryResult，类型都是问数
-
-        for (ChatQueryExecutor chatQueryExecutor : chatQueryExecutors) {
-            // 聊天执行器，判断用哪一个执行器执行
-            if (chatQueryExecutor.accept(executeContext)) {
-                queryResult = chatQueryExecutor.execute(executeContext);
-                if (queryResult != null) {
-                    // 只执行一个就返回,后续看要不要执行多个
-                    break;
+        // 循环intentResultList
+        StringBuilder temp = new StringBuilder();
+        String finalAnswer = "";
+        for (IntentResult intentResult : intentResultList) {
+            if (INTENT_TYPE_DATA.equals(intentResult.getIntentType())) {
+                // 直接进入问数执行器
+                SqlExecutor sqlExecutor = new SqlExecutor();
+                queryResult = sqlExecutor.execute(executeContext);
+                if (queryResult!=null) {
+                    // 拼接中间结果记忆作为下一轮提示词
+                    temp.append("question: ").append(intentResult.getIntentQuery()).append(";");
+                    temp.append("answer: ").append(queryResult.getTextResult()).append(";");
                 }
+            } else if (INTENT_TYPE_POLICY.equals(intentResult.getIntentType())) {
+                // 进入问策执行器
+                PlainTextExecutor plainTextExecutor = new PlainTextExecutor();
+                // 要把前N轮的记忆告诉LLM
+                temp.append(executeContext.getRequest().getQueryText());
+                executeContext.getRequest().setQueryText(temp.toString());
+                // TODO：进入聊天机器人的时候，要把类型手动改掉，现在是测试阶段，后期代码优化
+                QueryResult result = plainTextExecutor.execute(executeContext);
+                if (result!=null) {
+                    finalAnswer = result.getTextResult();
+                }
+            } else {
+                // 后续扩展类型
+                log.info("JOJO Test: 未定义类型 {}", intentResult.getIntentType());
             }
         }
-        // 保存结果
+        if (queryResult != null) {
+            queryResult.setTextResult(finalAnswer);
+        }
+
+        // 原逻辑
+//        for (ChatQueryExecutor chatQueryExecutor : chatQueryExecutors) {
+//            // 聊天执行器，判断用哪一个执行器执行
+//            if (chatQueryExecutor.accept(executeContext)) {
+//                queryResult = chatQueryExecutor.execute(executeContext);
+//                if (queryResult != null) { // 只执行一个就返回,后续看要不要执行多个 break;}}}
+
+        // TODO： 模型回答和保存，最终只保存一个问数类型的queryResult
         executeContext.setResponse(queryResult);
         if (queryResult != null) {
             for (ExecuteResultProcessor processor : executeResultProcessors) {
@@ -229,7 +261,7 @@ public class ChatQueryServiceImpl implements ChatQueryService {
         ParseContext parseContext = new ParseContext(chatParseReq, chatParseResp);
         Agent agent = agentService.getAgent(chatParseReq.getAgentId());
         parseContext.setAgent(agent);
-        log.info("JOJO Test: 获得Agent {}", agent.toString());
+//        log.info("JOJO Test: 获得Agent {}", agent.toString());
         return parseContext;
     }
 

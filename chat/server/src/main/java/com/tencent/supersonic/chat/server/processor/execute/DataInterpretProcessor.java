@@ -132,7 +132,6 @@ public class DataInterpretProcessor implements ExecuteResultProcessor {
                 queryResult.setTextSummary(anwser);
             }
         }
-
-
     }
+
 }
