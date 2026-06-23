@@ -1,6 +1,7 @@
 package com.tencent.supersonic.chat.server.service.impl;
 
 import com.alibaba.fastjson2.JSON;
+import com.facebook.presto.jdbc.internal.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import com.tencent.supersonic.chat.api.pojo.request.ChatExecuteReq;
 import com.tencent.supersonic.chat.api.pojo.request.ChatParseReq;
@@ -69,14 +70,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.tencent.supersonic.chat.server.executor.IntentAnalyzerExecutor.INTENT_TYPE_DATA;
@@ -128,6 +122,7 @@ public class ChatQueryServiceImpl implements ChatQueryService {
             chatParseReq.setQueryId(queryId);
         }
         // 这一步会识别请求需要的Agent智能体，如果是聊天，则智能体不会携带任何Tools，那么accept的时候就会进入聊天模型.期中agent_id是前端写死传进来的，
+//        chatParseReq.setQueryText("基于现有业务数据表查询:" + chatParseReq.getQueryText());
         // 界面入参看不见，如果我们用自己的意图识别器，就在问数机器人中手动把agent_id写死，那么这里就会识别成聊天模型，那么就进入聊天(问策)模型
         ParseContext parseContext = buildParseContext(chatParseReq, new ChatParseResp(queryId));
         for (ChatQueryParser parser : chatQueryParsers) {

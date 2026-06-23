@@ -164,7 +164,7 @@ public class NL2SQLParser implements ChatQueryParser {
         resp.setState(parseResp.getState());
         resp.setParseTimeCost(parseResp.getParseTimeCost());
         resp.setErrorMsg(parseResp.getErrorMsg());
-        log.info("JOJO TestParseResp: {}", parseResp);
+//        log.info("JOJO TestParseResp: {}", parseResp);
     }
 
     private void rewriteMultiTurn(ParseContext parseContext, QueryNLReq queryNLReq) {
